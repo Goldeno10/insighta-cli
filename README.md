@@ -73,6 +73,14 @@ insighta stats
 - **Token Storage:** Credentials are stored in the user's home directory (`~/.insighta/`).
 - **Expiry:** The CLI detects expired Access Tokens and uses the Refresh Token to seamlessly maintain your session (until the 5-minute refresh window closes).
 
+
+```bash
+# Build, link and run the cli
+npm run build
+npm link
+insighta --version
+```
+
 ## ⚠️ Limitations
 
 - **Search Complexity:** Currently supports keyword-based natural language queries but lacks support for complex nested logical operators (e.g., AND/OR).
@@ -83,8 +91,3 @@ insighta stats
 MIT
 
 ---
-
-> **Pro-Tip for your GitHub Repo:**  
-> Ensure your `package.json` has the `bin` field correctly pointing to your compiled `dist/index.js` file, otherwise `npm link` won’t work for the graders.  
-> *Does your CLI successfully open the browser when you run the `login` command locally?*
-```
