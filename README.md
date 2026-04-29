@@ -1,14 +1,19 @@
 # Insighta Labs+ CLI Tool 🛡️
 
-A globally installable Command Line Interface for the Insighta Labs+ Demographic Intelligence System. This tool provides secure, terminal-based access to demographic data with integrated session management.
+A globally installable Command Line Interface for the Insighta Labs+ Demographic Intelligence System. This tool provides secure, terminal-based access to demographic data with integrated session management [3️⃣ CLI Application].
+
+---
 
 ## 🌟 Features
 
-- **OAuth 2.0 with PKCE** – Secure authentication flow without exposing credentials [TRD].
-- **Automated Handshake** – Spins up a background server on port `4800` to automatically catch tokens from the browser [TRD].
-- **Session Management** – Stores credentials securely at `~/.insighta/credentials.json` [TRD].
-- **Token Handling** – Enforces small authorization windows to prevent session hijacking [TRD].
-- **Interactive Outputs** – Renders raw data cleanly in structured CLI tables.
+- **OAuth 2.0 with PKCE** – Secure authentication flow without exposing credentials [3️⃣ CLI Application].
+- **Automated Handshake** – Spins up a background server on port `4800` to automatically catch tokens from the browser [3️⃣ CLI Application].
+- **Session Management** – Stores credentials securely at `~/.insighta/credentials.json` [3️⃣ CLI Application].
+- **Token Handling** – Enforces small authorization windows to prevent session hijacking [3️⃣ CLI Application].
+- **Interactive Outputs** – Renders raw data cleanly in structured CLI tables with a loader state while fetching [3️⃣ CLI Application].
+- **Active Directory File Savings** – Saves your bulk CSV exports straight to your current working directory [3️⃣ CLI Application].
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -18,9 +23,11 @@ A globally installable Command Line Interface for the Insighta Labs+ Demographic
 - **Auth Logic**: `pkce-challenge`
 - **Output Styling**: Chalk
 
+---
+
 ## 🚀 Installation
 
-Install the CLI tool globally using npm [TRD]:
+Install the CLI tool globally using npm [3️⃣ CLI Application]:
 
 ```bash
 # 1. Clone the repository
@@ -40,49 +47,78 @@ chmod +x ./dist/index.js
 npm link
 ```
 
+---
+
 ## 📖 Usage Guide
 
 ### 1. Authentication
 
-Initiate the secure PKCE GitHub login flow:
-
 ```bash
+# Initiate GitHub PKCE flow
 insighta login
+
+# View active terminal identity
+insighta whoami
+
+# Wipe local session data and logout
+insighta logout
 ```
 
-Your terminal will open the browser. Once authorized, the CLI will automatically capture the tokens on port `4800` and save them locally [TRD].
+Your terminal will open the browser. Once authorized, the CLI will automatically seize the tokens on port `4800` and save them locally [3️⃣ CLI Application].
 
 ### 2. View Profiles
 
-Fetch paginated demographic data from the database:
+Fetch paginated demographic data from the database [3️⃣ CLI Application].
 
 ```bash
-# Default (Page 1)
-insighta profiles
+# List profiles with default pagination
+insighta profiles list
 
-# Fetch a specific page
-insighta profiles --page 2
+# Apply query chains
+insighta profiles list --gender male --country NG
+insighta profiles list --min-age 25 --max-age 40
+
+# Custom sorting
+insighta profiles list --sort-by age --order desc
 ```
 
-### 3. Clear Session
-
-Wipe your credentials from the computer:
+### 3. Record Management
 
 ```bash
-insighta logout
+# Get a single profile
+insighta profiles get <id>
+
+# Run plain english queries
+insighta profiles search "young males from nigeria"
+
+# Append a record to the dataset (Admin only)
+insighta profiles create --name "Harriet Tubman"
 ```
+
+### 4. File Extractions
+
+```bash
+# Bulk download in CSV format
+insighta profiles export --format csv
+
+# Download filtered chains
+insighta profiles export --format csv --gender male --country NG
+```
+
+---
 
 ## 🔐 Token Handling & File Structure
 
 The CLI securely maintains state in your system’s root directory:
 
-- **Location**: `~/.insighta/credentials.json` [TRD]
-- **Access Token Lifetime**: 3 minutes [TRD]
-- **Refresh Token Lifetime**: 5 minutes [TRD]
+- **Location**: `~/.insighta/credentials.json` [3️⃣ CLI Application]
+- **Access Token Lifetime**: 3 minutes
+- **Refresh Token Lifetime**: 5 minutes
 
-If you encounter an `Invalid or expired token` error, simply run `insighta login` again to establish a brand‑new secure session [TRD].
+If you encounter an `Invalid or expired token` error, simply run `insighta login` again to establish a brand‑new secure session [3️⃣ CLI Application].
+
+---
 
 ## 📄 License
 
 MIT
-```

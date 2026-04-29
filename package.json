@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "A CLI tool for Insighta",
-   "bin": {
+  "bin": {
     "insighta": "./dist/index.js"
   },
   "scripts": {
