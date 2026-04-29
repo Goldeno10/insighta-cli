@@ -14,8 +14,8 @@ const program = new Command();
 const CONFIG_DIR = path.join(os.homedir(), '.insighta');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'credentials.json');
 
-// ⚠️ Toggle this between localhost and your real live Vercel domain
-const BACKEND_URL = "http://localhost:3000";
+// Toggle this between localhost and your real live Vercel domain
+const BACKEND_URL = "https://hng-14-internship.vercel.app/" // "http://localhost:3000";
 const LOCAL_PORT = 4800;
 
 interface Credentials {
