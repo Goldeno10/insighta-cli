@@ -31,7 +31,7 @@ Install the CLI tool globally using npm [3️⃣ CLI Application]:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com
+git clone https://github.com/Goldeno10/insighta-cli.git
 cd insighta-cli
 
 # 2. Install dependencies
