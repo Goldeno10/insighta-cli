@@ -86,7 +86,7 @@ program
   .action(async () => {
     try {
       const token = await getValidToken();
-      const res = await axios.get(`${BACKEND_URL}/api/users/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await axios.get(`${BACKEND_URL}/api/users/me`, { headers: { 'Authorization': `Bearer ${token}`, 'X-API-Version': '1' } });
       console.log(chalk.cyan(`Logged in as: ${res.data.data.username} (${res.data.data.role})`));
     } catch (err: any) {
       console.log(chalk.red(err.message));
