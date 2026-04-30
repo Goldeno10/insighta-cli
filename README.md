@@ -119,6 +119,10 @@ If you encounter an `Invalid or expired token` error, simply run `insighta login
 
 ---
 
+```bash
+npm run build && chmod +x ./dist/index.js && npm link
+
+
 ## 📄 License
 
 MIT

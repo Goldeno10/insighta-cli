@@ -14,7 +14,7 @@ const CONFIG_DIR = path.join(os.homedir(), '.insighta');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'credentials.json');
 
 // ⚠️ Ensure this is your live Vercel URL
-const BACKEND_URL = "https://hng-14-internship.vercel.app/" // "http://localhost:3000";
+const BACKEND_URL = "https://hng-14-internship.vercel.app" // "http://localhost:3000";
 const LOCAL_PORT = 4800;
 
 interface Credentials {
@@ -129,7 +129,8 @@ profiles
       const res = await axios.get(`${BACKEND_URL}/api/profiles/${id}`, {
         headers: { 'X-API-Version': '1', 'Authorization': `Bearer ${token}` }
       });
-      console.table([res.data.data]);
+      
+      console.table([res.data.data[0]]);
     } catch (err: any) { console.log(chalk.red('Profile not found')); }
   });
 
@@ -139,11 +140,11 @@ profiles
   .action(async (query) => {
     try {
       const token = await getValidToken();
-      const res = await axios.get(`${BACKEND_URL}/api/profiles/search?q=${encodeURIComponent(query)}`, {
+      const res = await axios.get(`https://hng-14-internship.vercel.app/api/profiles/search?q=${encodeURIComponent(query)}`, {
         headers: { 'X-API-Version': '1', 'Authorization': `Bearer ${token}` }
       });
       console.table(res.data.data);
-    } catch (err: any) { console.log(chalk.red('Search failed')); }
+    } catch (err: any) { console.log(chalk.red('Search failed'), err); }
   });
 
 profiles
