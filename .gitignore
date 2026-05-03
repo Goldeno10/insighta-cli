@@ -49,4 +49,9 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
+_index.ts
 /lib/generated/prisma
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+branch_structure.json
