@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import axios, { type AxiosResponse } from 'axios';
+/// <reference types="node" />
+
+import axios from 'axios';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import fs from 'fs';
@@ -9,17 +11,19 @@ import os from 'os';
 import path from 'path';
 import pkceChallenge from 'pkce-challenge';
 
+
 const program = new Command();
-const CONFIG_DIR = path.join(os.homedir(), '.insighta');
-const CONFIG_PATH = path.join(CONFIG_DIR, 'credentials.json');
+const CONFIG_DIR = path.join(os.homedir(), process.env.CONFIG_DIR_NAME || '.insighta');
+const CONFIG_PATH = path.join(CONFIG_DIR, process.env.CONFIG_FILE_NAME || 'credentials.json');
 
 // ⚠️ Ensure this is your live Vercel URL
-const BACKEND_URL = "https://hng-14-internship.vercel.app" // "http://localhost:3000";
-const LOCAL_PORT = 4800;
+const BACKEND_URL =  process.env.BACKEND_URL || 'http://localhost:3000';
+const LOCAL_PORT = process.env.LOCAL_PORT || 4800;
 
 interface Credentials {
   access_token: string;
   refresh_token: string;
+  expires_in: number;
 }
 
 program
@@ -31,41 +35,111 @@ program
 async function getValidToken() {
   if (!fs.existsSync(CONFIG_PATH)) throw new Error('Please login first using "insighta login"');
   const creds: Credentials = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  // BACKEND_URL/auth/refresh {refresh_token} -> new access token + refresh token + expires_in
+  const now = Math.floor(Date.now() / 1000);
+  if (creds.expires_in && creds.expires_in < now) {
+    try {
+      const res = await axios.post(`${BACKEND_URL}/auth/refresh`, { refresh_token: creds.refresh_token });
+      const { access_token, refresh_token, expires_in } = res.data;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify({ access_token, refresh_token, expires_in }, null, 2), { mode: 0o600 });
+      return access_token;
+    } catch (err) {
+      fs.unlinkSync(CONFIG_PATH);
+      throw new Error('Session expired. Please login again.');
+    }
+  }
+
   return creds.access_token;
 }
 
 // ---------------- AUTH COMMANDS ----------------
-
 program
   .command('login')
   .description('Login via GitHub OAuth with PKCE')
   .action(async () => {
     const { code_challenge, code_verifier } = await pkceChallenge();
-    interface TokenRequest {
-      code: string;
-      code_verifier: string;
-    }
-    const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
-      const url = new URL(req.url!, `http://localhost:${LOCAL_PORT}`);
-      const code = url.searchParams.get('code');
-      if (code) {
-        try {
-          const response: AxiosResponse<Credentials> = await axios.post<Credentials>(`${BACKEND_URL}/api/auth/token`, { code: code!, code_verifier });
-          if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
-          fs.writeFileSync(CONFIG_PATH, JSON.stringify(response.data, null, 2));
-          res.end("Login successful! You can close this tab and return to the terminal.");
-          console.log(chalk.green('\n✅ Successfully logged in and saved credentials!'));
-          server.close();
-          process.exit(0);
-        } catch (err) {
-          res.end("Login failed.");
-          process.exit(1);
+
+    await new Promise<void>((resolve) => {
+      let timeout: NodeJS.Timeout;
+
+      const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
+        const url = new URL(req.url!, `http://localhost:${LOCAL_PORT}`);
+
+        if (!url.pathname.startsWith('/callback')) {
+          res.writeHead(404); res.end(); return;
         }
-      }
-    }).listen(LOCAL_PORT);
-    const authUrl = `${BACKEND_URL}/auth/github?code_challenge=${code_challenge}`;
-    console.log(chalk.blue('Opening browser for GitHub Login...'));
-    await open(authUrl);
+
+        const access_token = url.searchParams.get('access_token');
+        const refresh_token = url.searchParams.get('refresh_token');
+        const expires_in = url.searchParams.get('expires_in');
+        const error        = url.searchParams.get('error');
+
+        // convert expires_in to timestamp
+        const expires_in_ts = expires_in ? Math.floor(Date.now() / 1000) + parseInt(expires_in) : null;
+
+        const done = (code: number) => {
+          clearTimeout(timeout);
+          server.close();
+          resolve();
+          process.exit(code);
+        };
+
+        if (error) {
+          res.writeHead(400, { 'Content-Type': 'text/plain' });
+          res.end(`Login failed: ${error}`);
+          console.log(chalk.red(`\n❌ Login failed: ${error}`));
+          return done(1);
+        }
+
+        if (!access_token) {
+          res.writeHead(400, { 'Content-Type': 'text/plain' });
+          res.end('No token received.');
+          console.log(chalk.red('\n❌ No token received.'));
+          return done(1);
+        }
+
+        // Save credentials
+        if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify({ access_token, refresh_token, expires_in: expires_in_ts }, null, 2), { mode: 0o600 });
+
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('✅ Login successful! You can close this tab and return to the terminal.');
+        console.log(chalk.green('\n✅ Successfully logged in!'));
+        console.log(chalk.gray(`   Credentials saved to ${CONFIG_PATH}`));
+        return done(0);
+      });
+
+      // Only open browser once port is actually bound
+      server.listen(LOCAL_PORT, async () => {
+        timeout = setTimeout(() => {
+          console.log(chalk.yellow('\n⏱  Login timed out after 5 minutes.'));
+          server.close();
+          resolve();
+          process.exit(1);
+        }, 5 * 60 * 1000);
+
+        const authParams = new URLSearchParams({
+          code_challenge,
+          code_challenge_method: 'S256',
+          code_verifier,
+          redirect: 'cli',
+        });
+
+        console.log(chalk.blue('🔐 Opening browser for GitHub login...'));
+        console.log(chalk.gray(`   Listening on http://localhost:${LOCAL_PORT}/callback\n`));
+        await open(`${BACKEND_URL}/auth/github?${authParams}`);
+      });
+
+      server.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          console.log(chalk.red(`\n❌ Port ${LOCAL_PORT} is already in use. Close the other process and try again.`));
+        } else {
+          console.log(chalk.red(`\n❌ Server error: ${err.message}`));
+        }
+        resolve();
+        process.exit(1);
+      });
+    });
   });
 
 program
@@ -74,7 +148,7 @@ program
   .action(async () => {
     try {
       const token = await getValidToken();
-      await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, { headers: { 'Authorization': `Bearer ${token}` } });
+      await axios.post(`${BACKEND_URL}/auth/logout`, {}, { headers: { 'Authorization': `Bearer ${token}` } });
     } catch {}
     if (fs.existsSync(CONFIG_PATH)) fs.unlinkSync(CONFIG_PATH);
     console.log(chalk.green('Logged out successfully!'));
@@ -154,6 +228,7 @@ profiles
   .action(async (options) => {
     try {
       const token = await getValidToken();
+      console.log(chalk.blue('Creating profile...', options.name));
       const res = await axios.post(`${BACKEND_URL}/api/profiles`, { name: options.name }, {
         headers: { 'X-API-Version': '1', 'Authorization': `Bearer ${token}` }
       });
